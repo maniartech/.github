@@ -4,7 +4,8 @@ name: Mirror ctl-live → ctl/docs
 on:
   push:
     branches:
-      - master     # the branch in ctl-live you're watching
+      - master         # the branch in ctl-live you're watching
+  workflow_dispatch:   # ← now you can click “Run workflow” manually
 
 jobs:
   mirror-docs:
