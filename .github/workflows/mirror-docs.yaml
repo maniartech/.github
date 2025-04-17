@@ -1,0 +1,50 @@
+# .github/workflows/mirror-docs.yml
+name: Mirror ctl-live → ctl/docs
+
+on:
+  push:
+    branches:
+      - master     # the branch in ctl-live you're watching
+
+jobs:
+  mirror-docs:
+    # only run when triggered by pushes to ctl-live
+    if: github.repository == 'maniartech/ctl-live'
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout the private source repo (ctl-live)
+      - name: Checkout ctl-live (source)
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      # 2. Checkout the public target repo (ctl) on its live branch
+      - name: Checkout ctl@live (target)
+        uses: actions/checkout@v3
+        with:
+          repository: maniartech/ctl
+          token: ${{ secrets.ORG_DEST_REPO_TOKEN }}
+          ref: live
+          path: target
+
+      # 3. Sync everything (excluding .git) into target/docs
+      - name: Sync source → target/docs
+        run: |
+          rm -rf target/docs
+          mkdir -p target/docs
+          rsync -a --exclude='.git' ./ target/docs
+
+      # 4. Commit & push back to ctl’s live branch
+      - name: Commit & push
+        run: |
+          cd target
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: sync from ctl-live → live/docs"
+            git push origin live
+          fi
